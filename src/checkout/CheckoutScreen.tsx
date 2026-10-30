@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import type { ComponentRef } from 'react';
-import { ActivityIndicator, AppState, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { checkout } from '../bootstrap/createCheckout';
 import { useCheckoutStore } from '../state/checkoutStore';
 import { AuthorizationSheet, methodNames } from '../providers/AuthorizationSheet';
-import { detectEnvironment } from '../providers/capabilities';
 import { CardForm } from './CardForm';
 import { canStartPayment } from './card';
 import { eligibleMethods } from './eligibility';
@@ -25,35 +24,6 @@ function OrderSummary({ amountCents, confirmed }: { amountCents: number; confirm
     </View> : null}
     <View style={[styles.line, styles.totalLine]}><Text style={styles.total}>Total</Text><Text style={styles.amount}>{money(amountCents)}</Text></View>
     <Text style={styles.small}>Demo event and pricing</Text>
-  </View>;
-}
-
-function ReviewEnvironment({ disabled }: { disabled: boolean }) {
-  const [expanded, setExpanded] = useState(false);
-  const environment = useCheckoutStore(state => state.environment);
-  return <View style={styles.review}>
-    <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setExpanded(!expanded)} style={styles.action}>
-      <Text style={styles.link}>{expanded ? 'Hide' : 'Review'} environment</Text>
-    </Pressable>
-    {expanded ? <View style={styles.gap}>
-      <Text style={styles.muted}>Device: {Platform.OS}. Wallet readiness is simulated and defaults to unavailable.</Text>
-      <View style={styles.platforms}>
-        {['ios', 'android'].map(platform => <Pressable key={platform} accessibilityRole="button"
-          accessibilityLabel={`Simulate ${platform}`} disabled={disabled}
-          accessibilityState={{ selected: environment.platform === platform, disabled }}
-          onPress={() => useCheckoutStore.setState({ environment: { ...environment, platform } })}
-          style={[styles.chip, environment.platform === platform && styles.selected]}>
-          <Text style={styles.text}>{platform === 'ios' ? 'iOS' : 'Android'}</Text>
-        </Pressable>)}
-        <Pressable accessibilityRole="button" disabled={disabled} onPress={() => useCheckoutStore.setState({ environment: detectEnvironment() })} style={styles.chip}>
-          <Text style={styles.text}>Device default</Text>
-        </Pressable>
-      </View>
-      <View style={styles.line}><Text style={styles.text}>Simulated Apple Wallet ready</Text><Switch accessibilityLabel="Simulated Apple Wallet ready"
-        disabled={disabled} value={environment.appleWalletReady} onValueChange={appleWalletReady => useCheckoutStore.setState({ environment: { ...environment, appleWalletReady } })} /></View>
-      <View style={styles.line}><Text style={styles.text}>Simulated Google Pay ready</Text><Switch accessibilityLabel="Simulated Google Pay ready"
-        disabled={disabled} value={environment.googleWalletReady} onValueChange={googleWalletReady => useCheckoutStore.setState({ environment: { ...environment, googleWalletReady } })} /></View>
-    </View> : null}
   </View>;
 }
 
@@ -128,7 +98,6 @@ export function CheckoutScreen() {
                 Keyboard.dismiss();
                 checkout.submitExpress(method).catch(reportActionError);
               }}><Text style={method === 'affirm' ? styles.text : styles.expressText}>{method === 'affirm' ? 'Pay with Affirm' : methodNames[method]}</Text></Pressable>
-            {method !== 'affirm' ? <Text style={styles.small}>Simulated {environment.platform} wallet readiness</Text> : null}
           </View>)}
           <View style={styles.divider}><View style={styles.rule}/><Text style={styles.muted}>or pay with card</Text><View style={styles.rule}/></View>
           <View onLayout={event => { formY.current = event.nativeEvent.layout.y; }}>
@@ -140,7 +109,6 @@ export function CheckoutScreen() {
           }}><Text style={styles.link}>Clear card details</Text></Pressable>
         </> : null}
         <Text style={styles.footer}>Demo checkout · No real charge</Text>
-        <ReviewEnvironment disabled={blocked} />
       </ScrollView>
     </KeyboardAvoidingView>
     <AuthorizationSheet provider={checkout.provider} amount={money(order?.amountCents ?? 0)} />
@@ -168,8 +136,5 @@ const styles = StyleSheet.create({
   statusTitle: { color: '#fff', fontWeight: '700', fontSize: 28, textAlign: 'center' },
   centered: { color: '#b1b8b3', fontSize: 17, textAlign: 'center', lineHeight: 25 },
   checkmark: { color: '#c7f52d', fontSize: 64 }, footer: { color: '#a8b0aa', textAlign: 'center', fontSize: 13 },
-  review: { borderTopWidth: 1, borderColor: '#303632', paddingTop: 8, gap: 12 },
   action: { minHeight: 44, justifyContent: 'center', alignItems: 'center' }, link: { color: '#c7f52d', fontSize: 14 },
-  platforms: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, chip: { padding: 10, minHeight: 44, borderWidth: 1, borderColor: '#59665d', borderRadius: 8 },
-  selected: { backgroundColor: '#35422b', borderColor: '#c7f52d' },
 });
