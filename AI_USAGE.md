@@ -1,5 +1,7 @@
 # AI usage
 
+The entries below are chronological. The final candidate-verification entry supersedes earlier Android runtime, keyboard layout, native foreground lifecycle, and clean-clone verification gaps. Earlier command failures remain recorded as historical Codex observations.
+
 ## Preflight, 2026-10-30
 
 The candidate supplied the assessment, build guide, and working agreement and requested a plan without code changes. Codex read `AGENTS.md` and `references/gametime-build-guide.md` using shell reads and extracted all four assessment pages with macOS PDFKit via `swift -module-cache-path /tmp/gametime-swift-cache -e ...`. Poppler and Python PDF libraries were unavailable; the initial sandboxed Swift attempt failed, and the candidate approved the read outside the sandbox.
@@ -90,7 +92,7 @@ Final verification command: `npm run check && npx expo export --platform ios --p
 
 The candidate authorized lifecycle recovery, visible fault controls, Android verification, and the specified keyboard layout adjustments. They explicitly deferred real autofill setup and audit remediation, then required only one virtual device at a time because of host memory constraints. No dependencies were added. Milestone 2 commit `a59d747` had been pushed to the public repository before this work.
 
-Codex implemented `foregroundRecovery.ts`, the AppState subscription and cleanup in CheckoutScreen, queued foreground checks in createCheckout, and Android resize with iOS-only KeyboardAvoidingView padding. ScrollView retains keyboardShouldPersistTaps="handled". No fixed-padding fallback was needed during implementation; Android runtime layout remains unverified.
+Codex implemented `foregroundRecovery.ts`, the AppState subscription and cleanup in CheckoutScreen, queued foreground checks in createCheckout, and Android resize with iOS-only KeyboardAvoidingView padding. ScrollView retains keyboardShouldPersistTaps="handled". No fixed-padding fallback was needed during the initial implementation. Android runtime layout was not verified by Codex at that point; the candidate subsequently verified it on a separate host, as recorded below.
 
 Codex added ReviewerControls, scenario/display state, mock status-read fault injection after confirmation commit, latest-demo-order lookup, new-order controls, amount boundaries, service recreation, and client-only storage reset. The UI labels service recreation as a simulation. Payment mutations remain in PaymentCoordinator; bootstrap has explicit mock setup/amount controls. Codex added lifecycle and reviewer-session test suites and updated README and DECISIONS with reproduction steps and limitations.
 
@@ -107,15 +109,15 @@ Codex added ReviewerControls, scenario/display state, mock status-read fault inj
 | `/Users/scott/Library/Android/sdk/platform-tools/adb -s emulator-5554 emu kill` | Returned OK; stopped the stalled emulator to free memory. |
 | PDFKit extraction of the assessment; source searches; `git diff --check` | Rechecked scope and direct payment calls. No UI create/confirm/cancel calls or lint/type suppressions were found. Client/backend namespaces remain separate. |
 
-Earlier Android verification attempted Expo Go installation through the running Metro server; the install did not complete before the device disconnected. The candidate started an emulator during that work. After the memory constraint was given, Codex confirmed iOS was shut down before starting Android again. Computer-use inventory/window attempts did not yield a usable Android target. No successful Android checkout or keyboard observation is claimed.
+Earlier Android verification attempted Expo Go installation through the running Metro server; the install did not complete before the device disconnected. The candidate started an emulator during that work. After the memory constraint was given, Codex confirmed iOS was shut down before starting Android again. Computer-use inventory/window attempts did not yield a usable Android target. Codex did not observe a successful Android checkout or keyboard interaction during those local attempts. The later candidate verification is recorded below.
 
 ### Evidence and remaining gaps
 
 The automated lost-response scenario displays checking with one charge, then foreground recovery reaches success with one charge. Service recreation and client-only reset recover the same paid order. Delayed settlement, repeated lifecycle events, ignored terminal/authorizing transitions, rejected recovery promises, new-order ledger retention, amount changes, and decline-then-success are covered. Existing 20-concurrent-confirmation tests remain included. Tests use a memory-backed AsyncStorage mock and do not establish native crash consistency.
 
-No Milestone 3 native lifecycle/fault-control interaction or native kill/relaunch recovery was verified. iOS form/payment observations remain those recorded in Milestone 2. Android keyboard clipping, actual autofill, physical devices, and native APK compilation remain gaps. Both platform JavaScript bundles exported. The simulator keychain was not populated, as directed.
+At the end of Codex’s local Milestone 3 checks, no native lifecycle/fault-control interaction or native kill/relaunch recovery had been verified. The candidate subsequently verified Android runtime, keyboard layout, and native background-to-foreground reconciliation on a separate host. Actual autofill, physical-device coverage, native kill/relaunch recovery, and native APK compilation are not established by those reports. Both platform JavaScript bundles exported. The simulator keychain was not populated, as directed.
 
-Candidate approval of Milestone 3 scope is explicit. Final implementation review and disclosure review remain pending; no independent candidate test execution or detailed code review is asserted.
+The candidate approved Milestone 3 scope before implementation and subsequently confirmed completion after the independent verification recorded below. Detailed code review and disclosure review are not inferred from that confirmation.
 
 ## Post-milestone iOS keyboard correction, 2026-10-30
 
@@ -124,3 +126,11 @@ The candidate supplied a screenshot showing expiry/CVC obscured by the iOS keybo
 Codex added explicit ScrollView flex, an onLayout retry while the keyboard is visible, and 300 points of bottom scroll space on iOS so lower controls can be scrolled above the keyboard. Keyboard listeners track visibility and are removed on cleanup. KeyboardAvoidingView remains iOS-only; Android layout is unchanged. No dependency or behavioral test mirroring styles was added.
 
 `npm run check` passed lint, TypeScript, and 98 tests across four suites (1.115 seconds). These checks do not verify keyboard geometry. `adb devices` showed no Android device. `xcrun simctl list devices booted` encountered a CoreSimulator version change, then reported no booted devices. Device Hub computer-use access timed out. The previous Metro endpoint was not reachable in the sandbox; a subsequent listener check showed processes on ports 8081 and 8082. No native visual retest succeeded, and no new simulator/emulator was launched. Candidate verification after reloading remains pending.
+
+## Final candidate verification and documentation, 2026-10-30
+
+The candidate explicitly reported completing a clean clone on a separate host machine and manually verifying the Android runtime. They confirmed that the Android software keyboard behaves correctly without overlapping the form and that native AppState background-to-foreground reconciliation successfully recovers payment state. These are independent candidate-reported observations; Codex did not perform or observe those checks. No Android device model, OS version, or additional test commands were supplied, so none are inferred.
+
+The candidate declared Milestone 3 fully verified and authorized finalizing the assessment for submission. Codex updated README.md, DECISIONS.md, and this log to close the Android runtime, keyboard layout, and native foreground lifecycle limitations while preserving the history of earlier local verification attempts. No application code changed. Unrelated limits, including actual autofill and native process-kill durability, are not removed by this report.
+
+Codex inspected the documentation diff and ran `git diff --check`. Application tests were not rerun for this documentation-only update; the last observed application check remains lint/typecheck clean with 98 tests passing. The candidate requested the exact commit message `docs: verify Android runtime and finalize assessment` and authorized pushing it to the public repository.

@@ -111,7 +111,9 @@ Manual iOS observations on iPhone 18 Pro / iOS 27.0: fake Visa/Amex detection, n
 
 An isolated source copy at `/tmp/gametime-m3-clean` passed `npm ci --no-audit`, `npm run check` (98 tests), and both native bundle exports. This verifies a fresh dependency install; it is not a native launch from a fresh clone.
 
-Native express-sheet interaction, real autofill suggestions, Android runtime/keyboard layout, physical devices, and native background/kill/relaunch recovery remain unverified. Android startup was attempted, including with iOS shut down, but the emulator remained offline. The emulator reported an 8 GB host below its suggested 16 GB. It was stopped to free memory. Android uses resize with no KeyboardAvoidingView behavior; iOS uses padding and scrollable content. Bundle export does not establish native layout correctness or produce an APK. Service-recreation tests are not native crash-durability evidence.
+The candidate completed a clean clone on a separate host and manually verified the Android runtime. They confirmed that the Android software keyboard does not overlap the form and that native AppState background-to-foreground reconciliation recovers the payment state. This candidate verification closes the Android runtime, keyboard layout, and foreground lifecycle gaps from Codex’s earlier local emulator attempts. The candidate confirmed Milestone 3 as fully verified and the assessment ready for submission.
+
+Real autofill suggestions, physical-device coverage, native express-sheet interaction, and native process-kill/relaunch recovery are not established by that verification report. Android uses resize with no KeyboardAvoidingView behavior; iOS uses padding and scrollable content. Bundle export does not produce an APK. Service-recreation tests are not native crash-durability evidence.
 
 The three user-supplied Canva screenshots guided the dark background, lime action, order summary, and distinct checking/confirmation states. Decorative images, team logos, and a ticket-delivery flow were omitted. The UI explicitly identifies demo pricing and does not claim real ticket issuance or production payment security.
 

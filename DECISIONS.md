@@ -57,3 +57,9 @@ The network-drop scenario commits first, loses the response, and rejects one imm
 The candidate requested iOS-only KeyboardAvoidingView padding, a nested ScrollView with keyboardShouldPersistTaps="handled", and Android resize behavior to avoid double padding. These are implemented without adding a keyboard dependency. The existing focus/keyboard-show scrolling remains. The initial implementation did not use extra bottom space. After the candidate supplied an iOS screenshot showing the lower fields obscured, Codex added 300 points of iOS bottom scroll space, explicit ScrollView flex, and repositioning after viewport layout. KeyboardAvoidingView is retained; this correction still needs native visual verification.
 
 Both textContentType and autoComplete mappings remain explicit. The candidate directed Codex to document simulator autofill limits instead of populating a simulator keychain; actual password-manager suggestions are unverified. They also required running only one virtual device at a time because of local memory limits.
+
+## 2026-10-30: Candidate verification and submission acceptance
+
+The candidate reported completing a clean clone on a separate host and manually verifying the Android runtime. They confirmed that the software keyboard does not overlap the form and that native AppState background-to-foreground reconciliation recovers the payment state. This closes the Android runtime, keyboard layout, and native foreground lifecycle verification limitations caused by the original host constraints. These observations are candidate-reported, not Codex-observed.
+
+The candidate confirmed Milestone 3 as fully verified and authorized finalizing the assessment for submission. This documentation update changes no application code. The verification does not extend the mock into a production payment guarantee or establish native process-kill durability.
