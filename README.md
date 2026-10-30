@@ -1,13 +1,13 @@
 # Gametime Checkout
 
-Fans need to know whether a payment succeeded even when a response disappears or the app restarts. This Expo checkout implements platform-dependent express methods, validated native card input, an asynchronous mock payment API, and a recovery coordinator. Milestones 1 and 2 are implemented. Foreground AppState wiring and interactive backend fault controls remain for Milestone 3.
+Fans need to know whether a payment succeeded even when a response disappears or the app restarts. This Expo checkout implements platform-dependent express methods, validated native card input, an asynchronous mock payment API, and a recovery coordinator. Foreground recovery and deterministic reviewer fault controls are included.
 
 ## Run
 
 Prerequisites: Node.js and npm, plus Expo Go compatible with SDK 58 or an iOS/Android simulator. Development verification uses Node 26.13.0 and npm 11.20.0. iOS simulator launch requires macOS and Xcode; Android launch requires an Android SDK and a running emulator.
 
 ```sh
-npm ci
+npm ci --no-audit
 npm start
 ```
 
@@ -18,6 +18,8 @@ npm run ios
 npm run android
 ```
 
+On memory-constrained machines, run only one emulator or simulator at a time.
+
 The lockfile fixes dependency resolution. React DOM is installed to satisfy Expo Router's peer dependency and matches React 19.3.0; web is not a target.
 
 ## Try the checkout
@@ -27,7 +29,7 @@ The default fictional order totals $240 ($220 tickets, $20 mock fees). Device pl
 1. Use fake Visa `4242 4242 4242 4242`, a future expiry such as `12/30`, and CVC `123`. Pay stays disabled until all fields are valid. Fake Amex `3782 822463 10005` requires four CID digits.
 2. Open **Review environment** below the form to simulate iOS/Android and wallet readiness. Apple Pay requires simulated iOS plus Apple Wallet readiness; Google Pay requires simulated Android plus Google readiness. **Device default** restores the actual platform with simulated wallets unavailable.
 3. Select an express method to open its mock authorization sheet. Authorize completes checkout directly; Cancel and Simulate provider error return to a retryable checkout. There is no second checkout Pay tap.
-4. Try cancellation and card correction before completing a successful payment. The paid demo order stays paid across reloads. A new-order/reset control is not implemented yet.
+4. Try cancellation and card correction before completing a successful payment. The paid demo order stays paid across reloads. Use **Reviewer controls → New demo order** to try another payment while retaining previous mock charges.
 
 The form accepts full-year expiry input such as `12/2030`, displays `12/30`, and keeps the current month valid. Touched fields show errors. Changing Amex to Visa leaves an existing four-digit CID visible but invalid until corrected. Raw card fields live only in React Hook Form; submission revalidates and passes an unrelated synthetic token to the coordinator, then clears the form. **Clear card details** unmounts and recreates the form. Backgrounding alone does not erase it.
 
@@ -35,16 +37,23 @@ Autofill uses iOS `textContentType` and Android `autoComplete` hints on all thre
 
 ## Reproduce payment recovery
 
-These are headless integration tests, not interactive app controls:
+Open the green **Reviewer controls** panel at the top of checkout. Its charge counter is for the current order.
+
+1. **Lost response after commit:** choose **Force network drop**, collapse the panel, and pay with a fake card or authorize Affirm. The backend records success, then drops the confirmation response and fails the first recovery read. The client remains `checking` while **Mock charges: 1** is visible. New payments stay blocked.
+2. **Foreground recovery:** background the app and return. AppState immediately requests reconciliation for `checking` or `processing`; success appears with the same one charge. **Simulate foreground return** invokes the same status-check entry point without a native lifecycle transition.
+3. **Cold recovery:** on a new order, repeat the lost-response scenario, then choose **Simulate cold start**. Services are recreated over retained storage and GET recovers success. This button does not kill the native process. To exercise actual relaunch, close and reopen the app with its storage retained and Metro available.
+4. **Client storage loss:** repeat on another new order and choose **Clear client recovery only**. Authoritative order lookup recovers the paid order and one charge. Do not clear all Expo Go/app data: that also deletes the mock backend.
+5. **Delayed settlement:** select **Process for 15 seconds**, pay, background the app, wait 15 seconds, and return. GET materializes the stored settlement deadline. You can also use **Check status**. There is no background polling timer.
+6. **Decline/cancel/eligibility:** select **Issuer decline** for a definitive failure and retry with Success. The express sheet has Cancel and provider-error controls. Amount buttons exercise $99.99, $100.00, and $100.01; Affirm appears only above $100.00.
+
+Scenarios can change only while checkout is retryable. **New demo order** is blocked while payment is unresolved and retains the previous order ledger. Scenario selection resets to Success on a real app restart; persisted settlement outcomes do not change.
 
 ```sh
-npm test -- --testNamePattern='confirmation response|cold start GET'
-npm test -- --testNamePattern='cold start materializes'
-npm test -- --testNamePattern='concurrent|rapid submit|client-only reset'
 npm run check
+npm test -- --testNamePattern='confirmation response|cold start|concurrent|client-only reset|network-drop'
 ```
 
-The lost-response scenario writes a successful intent and charge, then throws a simulated network timeout. Another test also rejects the immediate GET, constructs fresh backend/coordinator instances over the retained storage, and recovers success by GET. Repeated reconciliation and submission leave the mock charge count at **1**. Concurrent identical confirmations likewise leave **1** charge. Delayed settlement stores its deadline and outcome; advancing the injected clock after recreation lets GET materialize success or decline without a live timer.
+Automated after-commit loss, fresh-service recovery, repeated reconciliation, and 20 concurrent identical confirmations each assert **1 mock charge**. These verify the local contract, not production provider guarantees.
 
 ## Review path
 
@@ -60,9 +69,11 @@ The lost-response scenario writes a successful intent and charge, then throws a 
 | `src/mock/MockPaymentAPI.ts` | Idempotency, order protection, settlement, and after-commit faults |
 | `src/mock/MockBackendStore.ts` | Serialized writes of one backend snapshot |
 | `src/storage/ClientRecoveryStore.ts` | Client-only recovery identity |
-| `src/bootstrap/createCheckout.ts` | Native storage/UUID injection, startup recovery, and presentation binding |
+| `src/bootstrap/createCheckout.ts`, `foregroundRecovery.ts` | Native composition, startup/foreground recovery, reviewer session controls |
+| `src/checkout/ReviewerControls.tsx` | Visible deterministic fault and recovery controls |
 | `tests/payments.test.ts` | Payment boundary and restart scenarios |
 | `tests/checkout.test.ts` | Card edits, validation, eligibility, and provider/coordinator integration |
+| `tests/lifecycle.test.ts`, `reviewer-session.test.ts` | Foreground boundaries, recreated services, client wipe, and debug controls |
 
 Zustand mirrors coordinator status and holds display state. It does not decide whether payment succeeded. React Hook Form holds transient card fields and card-validator checks network metadata, Luhn, expiry, and CVC. The coordinator has no React, React Native, or Zustand dependency.
 
@@ -76,9 +87,9 @@ Zustand mirrors coordinator status and holds display state. It does not decide w
 | `getIntent(intentId)` | Returns authoritative status and materializes due settlement. |
 | `cancelIntent(intentId)` | Atomically cancels only `requires_action`; returns the unchanged authoritative result if confirmation already progressed. |
 
-Only the coordinator calls payment mutations in application orchestration. Bootstrap seeds the mock order; tests exercise the API directly. The backend allows only one active attempt per order and refuses new keys for paid orders.
+Only the coordinator calls payment mutations in application orchestration. Bootstrap seeds demo orders and changes their amounts through explicit reviewer controls; tests exercise the API directly. The backend allows only one active attempt per order and refuses new keys for paid orders.
 
-The coordinator persists the attempt key before create, then the intent ID, then the confirming phase and stable confirmation key before confirm. No provider token enters client recovery storage. Unknown results trigger status recovery rather than a second confirmation. A busy coordinator joins repeated submit/reconcile calls to the same promise. Startup reconciles before enabling checkout. AppState foreground event wiring remains unimplemented; an unresolved status screen offers **Check status**.
+The coordinator persists the attempt key before create, then the intent ID, then the confirming phase and stable confirmation key before confirm. No provider token enters client recovery storage. Unknown results trigger status recovery rather than a second confirmation. A busy coordinator joins repeated submit/reconcile calls to the same promise. Startup reconciles before enabling checkout. AppState transitions from background/inactive to active trigger reconciliation only for processing or unknown (`checking`) payments. A foreground request arriving during an existing operation is queued until it completes. The subscription is removed on screen cleanup. An unresolved status screen also offers **Check status**.
 
 On cold recovery, `requires_action` is atomically cancelled. This assumes mock authorization cannot finish independently outside the app. A late token cannot confirm a cancelled intent. Real redirected payments would require provider/server status reconciliation before applying this policy. Known processing remains processing; terminal results clear client recovery. A local cleanup failure cannot turn verified success into failure.
 
@@ -94,11 +105,13 @@ Production work would require server-side transactions and order constraints, re
 
 ## Verification
 
-Milestone 2: `npm run check` passed lint, TypeScript, and **83 tests across two suites**, including all 37 foundation payment tests. `npx expo export --platform ios --platform android` exported both native bundles. Exact commands and earlier failures are recorded in [AI_USAGE.md](AI_USAGE.md).
+Milestone 3: `npm run check` passed lint, TypeScript, and **98 tests across four suites**, including all 37 foundation payment tests. `npx expo export --platform ios --platform android` exported both native bundles. Exact commands and earlier failures are recorded in [AI_USAGE.md](AI_USAGE.md).
 
 Manual iOS observations on iPhone 18 Pro / iOS 27.0: fake Visa/Amex detection, number-separator deletion and correction, full-year expiry normalization, slash deletion and correction, four-digit Amex CID versus three-digit Visa CVC, invalid/valid Pay state, keyboard-visible form positioning, and fake-card checkout reaching authoritative confirmation. Native event races found during these checks were corrected before the Milestone 2 commit.
 
-Native express-sheet interaction, real autofill suggestions, Android runtime, physical devices, and native kill/relaunch payment recovery remain unverified. A clean-clone `npm ci` run has not yet been performed. Service-recreation tests are not native crash-durability evidence.
+An isolated source copy at `/tmp/gametime-m3-clean` passed `npm ci --no-audit`, `npm run check` (98 tests), and both native bundle exports. This verifies a fresh dependency install; it is not a native launch from a fresh clone.
+
+Native express-sheet interaction, real autofill suggestions, Android runtime/keyboard layout, physical devices, and native background/kill/relaunch recovery remain unverified. Android startup was attempted, including with iOS shut down, but the emulator remained offline. The emulator reported an 8 GB host below its suggested 16 GB. It was stopped to free memory. Android uses resize with no KeyboardAvoidingView behavior; iOS uses padding and scrollable content. Bundle export does not establish native layout correctness or produce an APK. Service-recreation tests are not native crash-durability evidence.
 
 The three user-supplied Canva screenshots guided the dark background, lime action, order summary, and distinct checking/confirmation states. Decorative images, team logos, and a ticket-delivery flow were omitted. The UI explicitly identifies demo pricing and does not claim real ticket issuance or production payment security.
 

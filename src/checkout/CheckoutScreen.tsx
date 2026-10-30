@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ComponentRef } from 'react';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { checkout } from '../bootstrap/createCheckout';
 import { useCheckoutStore } from '../state/checkoutStore';
@@ -9,6 +9,7 @@ import { detectEnvironment } from '../providers/capabilities';
 import { CardForm } from './CardForm';
 import { canStartPayment } from './card';
 import { eligibleMethods } from './eligibility';
+import { ReviewerControls } from './ReviewerControls';
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
@@ -57,16 +58,16 @@ function ReviewEnvironment({ disabled }: { disabled: boolean }) {
 }
 
 export function CheckoutScreen() {
-  const { payment, order, environment, ready, busy, initializationError } = useCheckoutStore();
-  const [formGeneration, setFormGeneration] = useState(0);
+  const { payment, order, environment, ready, busy, initializationError, formGeneration } = useCheckoutStore();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const formY = useRef(0);
   function showCardForm() { scroll.current?.scrollTo({ y: formY.current, animated: true }); }
   // Subscribe before startup reconciliation. Cleanup removes the UI subscription, not the payment operation.
   useEffect(() => {
     const unsubscribe = checkout.connect();
+    const lifecycle = AppState.addEventListener('change', checkout.foregroundHandler(AppState.currentState ?? null));
     checkout.initialize().catch(() => useCheckoutStore.setState({ initializationError: 'Could not initialize checkout.' }));
-    return unsubscribe;
+    return () => { lifecycle.remove(); unsubscribe(); };
   }, []);
   // Native keyboard height arrives after focus; scroll again once its reduced viewport is available.
   useEffect(() => {
@@ -86,9 +87,10 @@ export function CheckoutScreen() {
 
   return <SafeAreaView style={styles.safe}>
     <StatusBar barStyle="light-content" />
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}><Text style={styles.title}>Checkout</Text></View>
       <ScrollView ref={scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+        <ReviewerControls />
         {initializationError ? <View style={styles.notice}>
           <Text accessibilityRole="alert" style={styles.text}>{initializationError}</Text>
           <Pressable accessibilityRole="button" style={styles.action} onPress={() => (ready ? checkout.checkStatus() : checkout.initialize()).catch(reportActionError)}><Text style={styles.link}>Retry loading</Text></Pressable>
@@ -127,7 +129,7 @@ export function CheckoutScreen() {
           </View>
           <Pressable accessibilityRole="button" disabled={busy} style={styles.action} onPress={() => {
             Keyboard.dismiss();
-            setFormGeneration(value => value + 1);
+            useCheckoutStore.setState(state => ({ formGeneration: state.formGeneration + 1 }));
           }}><Text style={styles.link}>Clear card details</Text></Pressable>
         </> : null}
         <Text style={styles.footer}>Demo checkout · No real charge</Text>

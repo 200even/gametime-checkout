@@ -10,6 +10,10 @@ interface PresentationState {
   ready: boolean;
   busy: boolean;
   initializationError: string | null;
+  chargeCount: number;
+  scenario: 'success' | 'lost_response' | 'delayed' | 'decline';
+  recoverySource: string | null;
+  formGeneration: number;
 }
 
 export const useCheckoutStore = create<PresentationState>(() => ({
@@ -17,4 +21,5 @@ export const useCheckoutStore = create<PresentationState>(() => ({
   order: null,
   environment: { platform: 'unknown', appleWalletReady: false, googleWalletReady: false },
   selectedMethod: 'card', ready: false, busy: false, initializationError: null,
+  chargeCount: 0, scenario: 'success', recoverySource: null, formGeneration: 0,
 }));

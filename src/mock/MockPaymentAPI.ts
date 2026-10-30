@@ -8,6 +8,7 @@ export interface MockScenario {
   processingMs: number;
   loseCreateResponse?: boolean;
   loseConfirmResponse?: boolean;
+  statusTimeoutsAfterConfirm?: number;
 }
 
 export class ResponseLostError extends Error {
@@ -35,12 +36,21 @@ function active(intent: StoredIntent): boolean {
 }
 
 export class MockPaymentAPI implements PaymentAPI {
+  private statusTimeouts = 0;
   constructor(
     private readonly store: MockBackendStore,
     private readonly now: () => number,
     private readonly newId: () => string,
     private readonly scenario: MockScenario = { settlement: 'succeeded', processingMs: 0 },
   ) {}
+
+  getReviewOrderId(): Promise<string> {
+    return this.store.transact(db => {
+      const latest = db.orders.at(-1);
+      if (!latest) throw new PaymentError('NOT_FOUND');
+      return latest.id;
+    });
+  }
 
   async seedOrder(id: string, amountCents: number): Promise<void> {
     this.validateAmount(amountCents);
@@ -66,6 +76,7 @@ export class MockPaymentAPI implements PaymentAPI {
   }
 
   getOrder(orderId: string): Promise<OrderSnapshot> {
+    if (this.consumeStatusTimeout()) return Promise.reject(new Error('Simulated status request timeout'));
     return this.store.transact(db => {
       this.settle(db);
       const order = findOrder(db, orderId);
@@ -130,11 +141,15 @@ export class MockPaymentAPI implements PaymentAPI {
       this.settle(db);
       return view(intent);
     });
-    if (this.scenario.loseConfirmResponse) throw new ResponseLostError();
+    if (this.scenario.loseConfirmResponse) {
+      this.statusTimeouts = this.scenario.statusTimeoutsAfterConfirm ?? 0;
+      throw new ResponseLostError();
+    }
     return result;
   }
 
   getIntent(id: string): Promise<PaymentIntent> {
+    if (this.consumeStatusTimeout()) return Promise.reject(new Error('Simulated status request timeout'));
     return this.store.transact(db => { this.settle(db); return view(findIntent(db, id)); });
   }
 
@@ -163,5 +178,11 @@ export class MockPaymentAPI implements PaymentAPI {
 
   private validateAmount(amount: number): void {
     if (!Number.isSafeInteger(amount) || amount <= 0) throw new PaymentError('INVALID_REQUEST');
+  }
+
+  private consumeStatusTimeout(): boolean {
+    if (this.statusTimeouts === 0) return false;
+    this.statusTimeouts -= 1;
+    return true;
   }
 }

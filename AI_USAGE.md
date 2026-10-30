@@ -85,3 +85,34 @@ The candidate authorized GitHub creation/sync, then explicitly requested public 
 Milestone 2 implementation review is pending. Candidate approval of direction and mock assumptions is recorded; no candidate execution of tests or detailed code review is asserted.
 
 Final verification command: `npm run check && npx expo export --platform ios --platform android`. Result: lint clean, TypeScript clean, **2 suites / 83 tests passed**, zero snapshots (1.238 seconds); Android and iOS bundles both exported. The previously verified 37 payment-boundary tests remain included. Documentation changes after this run record these observations and do not change application behavior.
+
+## Milestone 3, 2026-10-30
+
+The candidate authorized lifecycle recovery, visible fault controls, Android verification, and the specified keyboard layout adjustments. They explicitly deferred real autofill setup and audit remediation, then required only one virtual device at a time because of host memory constraints. No dependencies were added. Milestone 2 commit `a59d747` had been pushed to the public repository before this work.
+
+Codex implemented `foregroundRecovery.ts`, the AppState subscription and cleanup in CheckoutScreen, queued foreground checks in createCheckout, and Android resize with iOS-only KeyboardAvoidingView padding. ScrollView retains keyboardShouldPersistTaps="handled". No fixed-padding fallback was needed during implementation; Android runtime layout remains unverified.
+
+Codex added ReviewerControls, scenario/display state, mock status-read fault injection after confirmation commit, latest-demo-order lookup, new-order controls, amount boundaries, service recreation, and client-only storage reset. The UI labels service recreation as a simulation. Payment mutations remain in PaymentCoordinator; bootstrap has explicit mock setup/amount controls. Codex added lifecycle and reviewer-session test suites and updated README and DECISIONS with reproduction steps and limitations.
+
+### Commands and observed results
+
+| Command | Result |
+| --- | --- |
+| `npm run check` | Final source run: lint clean, TypeScript clean, 4 suites / 98 tests passed, zero snapshots, 2.045 seconds. |
+| `npm run check && npx expo export --platform ios --platform android` | Earlier Milestone 3 run passed 94 tests and exported both bundles before the four reviewer-session tests were added. |
+| Python source copy to `/tmp/gametime-m3-clean`, then `npm ci --no-audit` | Fresh install succeeded: 1272 packages. Existing transitive deprecation/install-script warnings were not remediated. No audit was run. |
+| `npm run check && npx expo export --platform ios --platform android` in that isolated copy | Lint/typecheck clean, 4 suites / 98 tests passed, zero snapshots, 3.077 seconds. iOS and Android bundles exported successfully. The copy contains final application source and tooling, not linked dependencies. |
+| `xcrun simctl shutdown BFD9E375-CA21-419F-BC9B-9D2B26234809`; `xcrun simctl list devices booted` | iOS shutdown confirmed before the subsequent Android launch. Sandboxed simulator-service access failed; authorized verification outside the sandbox succeeded. |
+| `/Users/scott/Library/Android/sdk/emulator/emulator -avd Medium_Phone_API_37.0 -no-snapshot-load` | Emulator warned that 8 GB host memory is below its suggested 16 GB. Repeated `adb devices` checks showed emulator-5554 offline. No app interaction was verified. |
+| `/Users/scott/Library/Android/sdk/platform-tools/adb -s emulator-5554 emu kill` | Returned OK; stopped the stalled emulator to free memory. |
+| PDFKit extraction of the assessment; source searches; `git diff --check` | Rechecked scope and direct payment calls. No UI create/confirm/cancel calls or lint/type suppressions were found. Client/backend namespaces remain separate. |
+
+Earlier Android verification attempted Expo Go installation through the running Metro server; the install did not complete before the device disconnected. The candidate started an emulator during that work. After the memory constraint was given, Codex confirmed iOS was shut down before starting Android again. Computer-use inventory/window attempts did not yield a usable Android target. No successful Android checkout or keyboard observation is claimed.
+
+### Evidence and remaining gaps
+
+The automated lost-response scenario displays checking with one charge, then foreground recovery reaches success with one charge. Service recreation and client-only reset recover the same paid order. Delayed settlement, repeated lifecycle events, ignored terminal/authorizing transitions, rejected recovery promises, new-order ledger retention, amount changes, and decline-then-success are covered. Existing 20-concurrent-confirmation tests remain included. Tests use a memory-backed AsyncStorage mock and do not establish native crash consistency.
+
+No Milestone 3 native lifecycle/fault-control interaction or native kill/relaunch recovery was verified. iOS form/payment observations remain those recorded in Milestone 2. Android keyboard clipping, actual autofill, physical devices, and native APK compilation remain gaps. Both platform JavaScript bundles exported. The simulator keychain was not populated, as directed.
+
+Candidate approval of Milestone 3 scope is explicit. Final implementation review and disclosure review remain pending; no independent candidate test execution or detailed code review is asserted.

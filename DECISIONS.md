@@ -4,13 +4,13 @@
 
 The candidate approved the proposed architecture and Milestone 1 implementation in this session. Expo/React Native/TypeScript and Router provide the app shell; a plain TypeScript `PaymentCoordinator` owns payment transitions and recovery. Zustand is reserved for presentation state, and React Hook Form/card-validator for transient card input in Milestone 2.
 
-Keeping recovery in screens would tie charge decisions to rendering and focus. A separate state framework would add scope without improving this small mock contract. The coordinator instead exposes typed snapshots and subscriptions and accepts an injected API, recovery store, and key generator. Native lifecycle wiring still needs to be implemented.
+Keeping recovery in screens would tie charge decisions to rendering and focus. A separate state framework would add scope without improving this small mock contract. The coordinator instead exposes typed snapshots and subscriptions and accepts an injected API, recovery store, and key generator. Milestone 3 adds native lifecycle synchronization without moving payment decisions into the screen.
 
 ## 2026-10-30: In-process mock with separate storage
 
 The candidate approved an async typed in-process API and explicitly required separate client/backend namespaces. `@client/recovery/v1` holds recovery identity; `@mock_backend/database/v1` holds authoritative mock records. An HTTP server was omitted to keep the assessment runnable within the timebox.
 
-Codex implemented a shared single-runtime queue and one backend JSON snapshot per mutation. This keeps charge and intent updates together under the mock contract. It does not supply cross-process locking, transactional AsyncStorage, or independence from app data deletion. Implementation review is pending.
+Codex implemented a shared single-runtime queue and one backend JSON snapshot per mutation. This keeps charge and intent updates together under the mock contract. It does not supply cross-process locking, transactional AsyncStorage, or independence from app data deletion. The candidate approved proceeding after the foundation report.
 
 ## 2026-10-30: Unknown results reconcile; paid orders reject new attempts
 
@@ -44,4 +44,16 @@ iOS receives textContentType hints, Android autoComplete hints. The candidate re
 
 After Canva shortlink access failed, the candidate supplied three screenshots. Codex used the dark/lime palette, $240 demo order, and distinct checkout/checking/confirmed layouts. Decorative art and ticket delivery were omitted under the candidate's instruction to keep polish utilitarian. Demo labels replace unproven production-security or real-ticket claims.
 
-The native mock authorization sheet offers authorize, cancel, and provider error. Express selection starts the flow and authorization calls confirmation without another checkout submit. Platform overrides and simulated wallet readiness controls are included now; amount/fault controls and foreground AppState wiring remain Milestone 3 work.
+The native mock authorization sheet offers authorize, cancel, and provider error. Express selection starts the flow and authorization calls confirmation without another checkout submit. Platform overrides and simulated wallet readiness controls are included now; Milestone 3 adds amount/fault controls and foreground AppState wiring.
+
+## 2026-10-30: Foreground recovery and reviewer controls
+
+The candidate approved Milestone 3 and requested AppState reconciliation and visible fault controls. Background/inactive to active transitions request GET recovery for processing or checking states; repeated active events do not. A busy session queues the foreground request. Screen cleanup removes the listener. PaymentCoordinator still decides recovery outcomes.
+
+The network-drop scenario commits first, loses the response, and rejects one immediate status read so the reviewer can observe uncertainty. Service recreation and client-only reset retain the backend namespace. The cold-start button is explicitly a simulation, not evidence of OS process-kill durability. A new demo order preserves the prior ledger and is blocked during unresolved payment.
+
+## 2026-10-30: Keyboard and autofill verification scope
+
+The candidate requested iOS-only KeyboardAvoidingView padding, a nested ScrollView with keyboardShouldPersistTaps="handled", and Android resize behavior to avoid double padding. These are implemented without adding a keyboard dependency. The existing focus/keyboard-show scrolling remains. The proposed fixed 300px fallback was not applied.
+
+Both textContentType and autoComplete mappings remain explicit. The candidate directed Codex to document simulator autofill limits instead of populating a simulator keychain; actual password-manager suggestions are unverified. They also required running only one virtual device at a time because of local memory limits.
