@@ -54,6 +54,6 @@ The network-drop scenario commits first, loses the response, and rejects one imm
 
 ## 2026-10-30: Keyboard and autofill verification scope
 
-The candidate requested iOS-only KeyboardAvoidingView padding, a nested ScrollView with keyboardShouldPersistTaps="handled", and Android resize behavior to avoid double padding. These are implemented without adding a keyboard dependency. The existing focus/keyboard-show scrolling remains. The proposed fixed 300px fallback was not applied.
+The candidate requested iOS-only KeyboardAvoidingView padding, a nested ScrollView with keyboardShouldPersistTaps="handled", and Android resize behavior to avoid double padding. These are implemented without adding a keyboard dependency. The existing focus/keyboard-show scrolling remains. The initial implementation did not use extra bottom space. After the candidate supplied an iOS screenshot showing the lower fields obscured, Codex added 300 points of iOS bottom scroll space, explicit ScrollView flex, and repositioning after viewport layout. KeyboardAvoidingView is retained; this correction still needs native visual verification.
 
 Both textContentType and autoComplete mappings remain explicit. The candidate directed Codex to document simulator autofill limits instead of populating a simulator keychain; actual password-manager suggestions are unverified. They also required running only one virtual device at a time because of local memory limits.

@@ -61,6 +61,7 @@ export function CheckoutScreen() {
   const { payment, order, environment, ready, busy, initializationError, formGeneration } = useCheckoutStore();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const formY = useRef(0);
+  const keyboardVisible = useRef(false);
   function showCardForm() { scroll.current?.scrollTo({ y: formY.current, animated: true }); }
   // Subscribe before startup reconciliation. Cleanup removes the UI subscription, not the payment operation.
   useEffect(() => {
@@ -71,8 +72,12 @@ export function CheckoutScreen() {
   }, []);
   // Native keyboard height arrives after focus; scroll again once its reduced viewport is available.
   useEffect(() => {
-    const subscription = Keyboard.addListener('keyboardDidShow', showCardForm);
-    return () => subscription.remove();
+    const show = Keyboard.addListener('keyboardDidShow', () => {
+      keyboardVisible.current = true;
+      showCardForm();
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => { keyboardVisible.current = false; });
+    return () => { show.remove(); hide.remove(); };
   }, []);
 
   const confirmed = payment.status === 'succeeded';
@@ -89,7 +94,9 @@ export function CheckoutScreen() {
     <StatusBar barStyle="light-content" />
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}><Text style={styles.title}>Checkout</Text></View>
-      <ScrollView ref={scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+      <ScrollView ref={scroll} style={styles.flex} contentContainerStyle={styles.content}
+        onLayout={() => { if (keyboardVisible.current) showCardForm(); }}
+        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <ReviewerControls />
         {initializationError ? <View style={styles.notice}>
           <Text accessibilityRole="alert" style={styles.text}>{initializationError}</Text>
@@ -144,7 +151,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#090c0b' }, flex: { flex: 1 },
   header: { padding: 16, borderBottomWidth: 1, borderColor: '#303632', alignItems: 'center' },
   title: { color: '#fff', fontSize: 21, fontWeight: '700' },
-  content: { padding: 20, gap: 18, width: '100%', maxWidth: 600, alignSelf: 'center', paddingBottom: 32 },
+  content: { padding: 20, gap: 18, width: '100%', maxWidth: 600, alignSelf: 'center', paddingBottom: Platform.OS === 'ios' ? 300 : 32 },
   summary: { backgroundColor: '#171b19', borderWidth: 1, borderColor: '#3f4742', borderRadius: 12, padding: 18, gap: 10 },
   event: { color: '#fff', fontSize: 23, fontWeight: '700' }, muted: { color: '#b1b8b3', fontSize: 15 },
   small: { color: '#a8b0aa', fontSize: 12 }, text: { color: '#f5f6f5', fontSize: 16 },

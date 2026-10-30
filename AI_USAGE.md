@@ -116,3 +116,11 @@ The automated lost-response scenario displays checking with one charge, then for
 No Milestone 3 native lifecycle/fault-control interaction or native kill/relaunch recovery was verified. iOS form/payment observations remain those recorded in Milestone 2. Android keyboard clipping, actual autofill, physical devices, and native APK compilation remain gaps. Both platform JavaScript bundles exported. The simulator keychain was not populated, as directed.
 
 Candidate approval of Milestone 3 scope is explicit. Final implementation review and disclosure review remain pending; no independent candidate test execution or detailed code review is asserted.
+
+## Post-milestone iOS keyboard correction, 2026-10-30
+
+The candidate supplied a screenshot showing expiry/CVC obscured by the iOS keyboard. This supersedes any inference that the earlier form-positioning observations established complete keyboard usability. Codex inspected CheckoutScreen and found that focus/keyboard-show scrolling had no follow-up when the viewport resized and could be clamped before layout completed.
+
+Codex added explicit ScrollView flex, an onLayout retry while the keyboard is visible, and 300 points of bottom scroll space on iOS so lower controls can be scrolled above the keyboard. Keyboard listeners track visibility and are removed on cleanup. KeyboardAvoidingView remains iOS-only; Android layout is unchanged. No dependency or behavioral test mirroring styles was added.
+
+`npm run check` passed lint, TypeScript, and 98 tests across four suites (1.115 seconds). These checks do not verify keyboard geometry. `adb devices` showed no Android device. `xcrun simctl list devices booted` encountered a CoreSimulator version change, then reported no booted devices. Device Hub computer-use access timed out. The previous Metro endpoint was not reachable in the sandbox; a subsequent listener check showed processes on ports 8081 and 8082. No native visual retest succeeded, and no new simulator/emulator was launched. Candidate verification after reloading remains pending.

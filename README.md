@@ -107,7 +107,7 @@ Production work would require server-side transactions and order constraints, re
 
 Milestone 3: `npm run check` passed lint, TypeScript, and **98 tests across four suites**, including all 37 foundation payment tests. `npx expo export --platform ios --platform android` exported both native bundles. Exact commands and earlier failures are recorded in [AI_USAGE.md](AI_USAGE.md).
 
-Manual iOS observations on iPhone 18 Pro / iOS 27.0: fake Visa/Amex detection, number-separator deletion and correction, full-year expiry normalization, slash deletion and correction, four-digit Amex CID versus three-digit Visa CVC, invalid/valid Pay state, keyboard-visible form positioning, and fake-card checkout reaching authoritative confirmation. Native event races found during these checks were corrected before the Milestone 2 commit.
+Manual iOS observations on iPhone 18 Pro / iOS 27.0: fake Visa/Amex detection, number-separator deletion and correction, full-year expiry normalization, slash deletion and correction, four-digit Amex CID versus three-digit Visa CVC, invalid/valid Pay state, keyboard-visible form positioning, and fake-card checkout reaching authoritative confirmation. Native event races found during these checks were corrected before the Milestone 2 commit. A later candidate screenshot still showed expiry/CVC obscured on iOS. A follow-up adds viewport-layout repositioning and extra bottom scroll space; its native visual retest is pending.
 
 An isolated source copy at `/tmp/gametime-m3-clean` passed `npm ci --no-audit`, `npm run check` (98 tests), and both native bundle exports. This verifies a fresh dependency install; it is not a native launch from a fresh clone.
 
