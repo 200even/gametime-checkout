@@ -48,3 +48,40 @@ No card form, wallet capability UI, Zustand presentation store, scenario menu, o
 The iOS shell was visually inspected through Device Hub using computer-use tools. Attempts to find an app named Simulator failed before locating Device Hub. No payment behavior was exercised in that UI. The development server was left running on port 8082 for review. A clean-clone install has not been performed.
 
 Implementation review is pending. Codex has not claimed candidate code review, independent validation, or candidate authorship of generated code. No commit, publication, or submission has been performed. Milestone 2 has not started.
+
+## Milestone 2, 2026-10-30
+
+The candidate explicitly accepted the documented cold-recovery cancellation assumption and authorized Milestone 2's detailed plan and implementation. They prioritized caret behavior, dynamic CVC length/validity, and autofill hints, and directed Codex not to address npm audit findings. Codex clarified that native hints do not guarantee password-manager support. No dependency was added or audit remediation attempted.
+
+Codex authored `src/checkout/` (screen, form, validation, formatting, eligibility, input hints), `src/providers/` (capability stub, authorization state, native sheet), `src/state/checkoutStore.ts`, bootstrap/Router wiring, and `tests/checkout.test.ts`. It updated README and DECISIONS. PaymentCoordinator and the backend contract were preserved. Startup recovery is wired; foreground AppState recovery and backend scenario controls remain pending.
+
+### Reference and verification work
+
+- Read installed card-validator and React Native declarations/implementations, plus the official React Native TextInput documentation for supported hints and selection events.
+- Attempted the approved Canva shortlink through web access and `curl -IL --max-time 15 'https://www.canva.com/d/9RYPnQ8Pgx52mDk'`. Sandbox DNS failed; approved retry reached a 403 access challenge. The candidate then supplied three screenshots, which Codex inspected directly and used for the dark/lime native layout. No screenshots were embedded as app UI.
+- Ran `npm ls react-test-renderer @types/react-test-renderer` while inspecting installed test tooling. A renderer was not installed and no new renderer dependency was added.
+- Ran `npm run check` repeatedly after implementation and corrections. Initial TypeScript failures concerned the native input instance ref type and narrowing a test callback's captured value. Codex corrected the types without escapes or suppressions. Subsequent runs passed 82 tests across two suites with lint and TypeScript clean; final verification is appended below.
+- Ran `npx expo export --platform ios --platform android`; both native bundles exported successfully. Re-exported after final input corrections as part of final verification.
+- Used source searches to inspect payment mutation calls and suppressions. UI/presentation files do not directly call create/confirm/cancel APIs; application mutations remain in PaymentCoordinator. No unsafe type casts or lint/type suppressions were added.
+
+### Native observations
+
+Computer-use testing ran in Expo Go on iPhone 18 Pro / iOS 27.0. The tool intermittently returned accessibility/window errors; Codex refreshed targets and reset the computer-use session. These interruptions limited coverage and are not claimed as successful actions.
+
+Observed: $240 order pricing; Affirm visible with default wallets unavailable; invalid card Pay disabled; Visa and Amex detection; Amex four-digit CID label and maxLength; three CID digits invalid for Amex; four digits enabling valid Amex submission; changing to Visa retaining four digits but marking them invalid; Visa entry capped at three CVC digits; full-year expiry input becoming `12/30`; backspace over the card separator and expiry slash, followed by correction at the same edit position; the form visible above the keyboard after the scrolling fix; and a complete fake Visa checkout reaching Payment confirmed with intent ID `04960467-507e-4a75-84a7-a29335f7a35f`.
+
+Native testing found two issues: expiry could be hidden below the keyboard, and rendering native selection notifications back into the input caused dropped/reordered replacement text. Codex added focus/keyboard-show scrolling and revised selection handling to observe native events without rendering them back. Full Visa replacement was observed intact after the final strategy. Earlier separator and expiry interaction checks were observed during this iteration; the entire matrix was not repeated on both platforms after every change.
+
+No actual password-manager autofill, Android runtime, physical-device, native express authorization, native lost-response, or native kill/relaunch recovery was verified. Express authorize/cancel/error and no-second-submit behavior were exercised headlessly through the real mock provider and coordinator. Automated tests also cover eligibility boundaries, card validation and editing, and absence of fake card values in payment persistence. A complete clean-clone install remains Milestone 3 work.
+
+### Commits and repository
+
+The candidate requested clean commits while Milestone 2 was in progress. Codex staged Milestone 1 separately, preserving its original foundation screen/bootstrap in the index without reverting working UI files. It checked the staged snapshot via `git checkout-index --all --prefix=/tmp/gametime-m1-review/`, linked the installed dependencies, and ran `npm --prefix /tmp/gametime-m1-review run check`: lint/typecheck clean, 37 tests passed. This is staged-source verification, not a fresh dependency install.
+
+Codex asked for the missing Git identity; the candidate supplied Scott Ferguson / esfergus@gmail.com. Codex set repository-local Git configuration. The candidate performed `gh auth login` themselves. Sandbox `gh auth status` initially reported an invalid token; verification outside the sandbox succeeded for account `200even`.
+
+The candidate authorized GitHub creation/sync, then explicitly requested public visibility. The interrupted private-creation command did not create a commit. Codex ran `git commit -m "Build checkout payment foundation with durable mock recovery"` and `gh repo create gametime-checkout --public --source=. --remote=origin --push`. Foundation commit **b98a605** was pushed to **https://github.com/200even/gametime-checkout**. `references/`, generated bundles, node_modules, and local artifacts remain excluded. Only a trailing blank line was removed from the supplied AGENTS.md; its instructions were unchanged.
+
+Milestone 2 implementation review is pending. Candidate approval of direction and mock assumptions is recorded; no candidate execution of tests or detailed code review is asserted.
+
+Final verification command: `npm run check && npx expo export --platform ios --platform android`. Result: lint clean, TypeScript clean, **2 suites / 83 tests passed**, zero snapshots (1.238 seconds); Android and iOS bundles both exported. The previously verified 37 payment-boundary tests remain included. Documentation changes after this run record these observations and do not change application behavior.

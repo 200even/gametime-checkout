@@ -22,10 +22,26 @@ The candidate approved authoritative order lookup to recover after client-only s
 
 The candidate explicitly approved distinguishing pre-confirm cancellation from post-confirm uncertainty. Codex implemented `cancelIntent` under the backend write queue: only `requires_action` becomes cancelled; processing or terminal results remain authoritative.
 
-Cold recovery cancels incomplete mock authorization because the fake provider cannot finish independently after process death. Production Affirm redirects and wallet flows require external status reconciliation. This is an explicit mock assumption, not a claim about real provider behavior. Implementation review is pending.
+Cold recovery cancels incomplete mock authorization because the fake provider cannot finish independently after process death. Production Affirm redirects and wallet flows require external status reconciliation. The candidate explicitly accepted this mock constraint after the Milestone 1 report and authorized Milestone 2. That acceptance is not a claim about real provider behavior or independently executed tests.
 
 ## 2026-10-30: Dependency and static-analysis scope
 
 The candidate approved the dependency set, omitting direct Zod/resolver dependencies, and the static-analysis plan. Codex selected Expo SDK 58 using published npm metadata and Expo's compatibility resolver. React DOM 19.3.0 is an Expo Router peer, not a new web target.
 
 ESLint import restrictions enforce direct layer boundaries; typed promise rules require promise handling. Tests and bootstrap have intentional wiring access. Import rules do not detect arbitrary re-export paths or prove idempotency. No custom lint rules, suppressions, or unsafe type casts were added. Expo/Jest's transitive audit findings remain unresolved; forcing major downgrades was not attempted.
+
+The candidate subsequently directed Codex not to spend time on audit remediation. No dependencies or overrides were added in Milestone 2.
+
+## 2026-10-30: Native form editing and autofill
+
+The candidate prioritized separator deletion, BIN-dependent CVC rules, and platform-specific autofill hints. Codex implemented React Hook Form plus card-validator with digit-relative caret mapping. An explicit selection is supplied only when formatting rewrites the native text. Selection-change notifications update a ref rather than triggering a render that can overwrite later keystrokes. Native checks exposed and informed this correction; a temporary selection-acknowledgment filter was replaced because it interfered with text replacement.
+
+Amex requires four CID digits; Visa/Mastercard require three. Before detection the input permits four. A brand change does not silently rewrite a previously entered CVC: the old value becomes invalid until corrected. Validation is derived on each render and independently repeated at submission; only an opaque synthetic token leaves the form.
+
+iOS receives textContentType hints, Android autoComplete hints. The candidate requested autofill parity; Codex clarified that these hints cannot guarantee password-manager availability. No actual password-manager autofill was observed. Keyboard show/focus synchronization scrolls the form into the reduced viewport; the listener is removed on unmount.
+
+## 2026-10-30: UI reference and mock scope
+
+After Canva shortlink access failed, the candidate supplied three screenshots. Codex used the dark/lime palette, $240 demo order, and distinct checkout/checking/confirmed layouts. Decorative art and ticket delivery were omitted under the candidate's instruction to keep polish utilitarian. Demo labels replace unproven production-security or real-ticket claims.
+
+The native mock authorization sheet offers authorize, cancel, and provider error. Express selection starts the flow and authorization calls confirmation without another checkout submit. Platform overrides and simulated wallet readiness controls are included now; amount/fault controls and foreground AppState wiring remain Milestone 3 work.

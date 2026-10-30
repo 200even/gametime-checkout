@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
 
 export default function RootLayout() {
-  return <Stack screenOptions={{ headerTitle: 'Gametime Checkout' }} />;
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
